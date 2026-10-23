@@ -1,3 +1,5 @@
+<img src="img/icono.png" width="44" align="right" alt="">
+
 # 2 · La app de la barra (Mac o Windows)
 
 La app **se construye en tu computador** (unos 10 minutos la primera vez). Tu IA puede hacer casi todo;

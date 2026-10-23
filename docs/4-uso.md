@@ -1,3 +1,5 @@
+<img src="img/icono.png" width="44" align="right" alt="">
+
 # 4 · Uso diario
 
 Abre el panel con el **candado** (arriba a la derecha en Mac; junto al reloj en Windows) o con

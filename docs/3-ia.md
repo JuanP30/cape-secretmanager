@@ -1,3 +1,5 @@
+<img src="img/icono.png" width="44" align="right" alt="">
+
 # 3 · Conectar tu IA (Claude Code, OpenCode, Codex…)
 
 La IA **nunca ve una clave**. Pide **acciones** a la Puerta («corre este comando en el servidor»,

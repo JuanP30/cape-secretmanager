@@ -1,3 +1,5 @@
+<img src="img/icono.png" width="44" align="right" alt="">
+
 # 1 · El servidor: bóveda + Puerta
 
 Se hace **una vez por empresa**. Al final tendrás dos direcciones:
