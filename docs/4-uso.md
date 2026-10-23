@@ -21,8 +21,15 @@ también **alias** (corto, p. ej. `vps`) y **tipo** (`ssh`, `api` o `ftp`).
 
 ## Invitar a una persona
 
-**Accesos** → **Invitar persona** → correo y nombre → sale un **código de alta** (vale 24 h) y un mensaje
-listo para copiar y mandarle. Ella construye la app ([2-app.md](2-app.md)) y hace la «Primera vez».
+**Accesos** → **Invitar persona** → correo y nombre → **Invitar**. A la persona le llega un **correo** con su
+código de alta (vale 24 h), la dirección de la Puerta y los pasos. Ella construye la app
+([2-app.md](2-app.md)) y hace la «Primera vez». Si el servidor no tiene correo configurado
+(`CORREO_WEBHOOK`), la app te muestra el código y un mensaje listo para copiar y mandárselo tú.
+
+**No necesita cuenta de Vaultwarden.** La app entra a la Puerta con su propia cuenta (contraseña + 2FA) y la
+Puerta lee la bóveda por ella. Una cuenta de Vaultwarden solo hace falta para usar además las apps de
+Bitwarden (celular, extensión del navegador para autocompletar): esa se invita aparte, desde la web de la
+bóveda (organización → Miembros → Invitar).
 
 Las personas ven **todas** las empresas. Si alguien solo debe ver algunas, dale acceso en la web de la
 bóveda (organización → miembros → colecciones) en vez de una cuenta en la app.

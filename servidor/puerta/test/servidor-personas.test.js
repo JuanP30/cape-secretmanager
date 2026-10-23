@@ -115,3 +115,26 @@ test('una persona invita a otra; un Claude no puede invitar', async (t) => {
   const { token } = D.sondear(db, sol.id, sol.sondeo, Date.now());
   assert.equal((await pedir('/v1/personas/invitar', { correo: 'yo@e.co' }, token)).status, 403);
 });
+
+test('invitar manda el correo con el código y la dirección de la Puerta; si el correo falla, igual da el código', async (t) => {
+  const db = D.abrir(':memory:');
+  const codigo = P.crearAlta(db, 'g@e.co', 'Gestor', T);
+  const s = new URL(P.completarAlta(db, 'g@e.co', codigo, 'clave-del-gestor-123', T)).searchParams.get('secret');
+  P.confirmarTotp(db, 'g@e.co', P.totp(s, T), T);
+  const enviados = []; let falla = false;
+  const srv = crearServidor({ db, vault: vaultFalso(), acciones: {}, repo: 'https://github.com/ejemplo/repo',
+    correoSaliente: async (para, asunto, html) => { if (falla) throw new Error('caído'); enviados.push({ para, asunto, html }); } });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r)); t.after(() => srv.close());
+  const base = `http://127.0.0.1:${srv.address().port}`;
+  const post = (ruta, datos, token) => fetch(base + ruta, { method: 'POST', body: new URLSearchParams(datos),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+  const { token } = await (await post('/v1/personas/entrar', { correo: 'g@e.co', clave: 'clave-del-gestor-123', totp: P.totp(s, Date.now()), equipo: 'Mac' })).json();
+  const r = await (await post('/v1/personas/invitar', { correo: 'david@e.co', nombre: 'David' }, token)).json();
+  assert.equal(r.enviado, true);
+  assert.equal(enviados[0].para, 'david@e.co');
+  assert.ok(enviados[0].html.includes(r.codigo) && enviados[0].html.includes(base.replace('http://', 'https://')) && enviados[0].html.includes('github.com/ejemplo/repo'));
+  falla = true;
+  const r2 = await (await post('/v1/personas/invitar', { correo: 'ana@e.co', nombre: '<b>Ana</b>' }, token)).json();
+  assert.equal(r2.enviado, false);
+  assert.match(r2.codigo, /^[A-Z0-9]{8}$/);
+});

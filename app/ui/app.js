@@ -200,11 +200,11 @@ function vistaInvitar() {
   const err = h('div', { class: 'error' });
   const zona = h('div', {});
   pintar(cabecera('Invitar persona'), h('div', { class: 'pad', style: 'padding-top:4px;overflow:auto' },
-    h('div', { class: 'pasos' }, 'Le das un código de alta (vale 24 h). Con él, en su app, elige su contraseña y escanea su QR.'),
+    h('div', { class: 'pasos' }, 'Le llega un correo con su código de alta (vale 24 h) y los pasos. Con él, en su app, elige su contraseña y escanea su QR.'),
     h('label', { class: 'campo' }, 'Correo'), correo, h('label', { class: 'campo' }, 'Nombre'), nombre, err,
     h('div', { class: 'acciones', style: 'padding:12px 0 0' }, h('button', { class: 'p', onclick: async () => {
       try {
-        const { codigo } = await pedir('/v1/personas/invitar', { correo: correo.value.trim(), nombre: nombre.value.trim() });
+        const { codigo, enviado } = await pedir('/v1/personas/invitar', { correo: correo.value.trim(), nombre: nombre.value.trim() });
         const texto = `Hola ${nombre.value.trim() || ''}: te invité a CAPE SecretManager.\n\n` +
           `1. Construye e instala la app «CAPE SecretManager» (docs/2-app.md del repo) y ábrela.\n` +
           `2. Toca «Primera vez · tengo un código de alta».\n` +
@@ -212,10 +212,13 @@ function vistaInvitar() {
           `4. Elige tu contraseña, escanea el QR con tu app de códigos y escribe los 6 dígitos.\n` +
           `Guía completa: README del repo cape-secretmanager.`;
         const copiarB = h('button', { class: 's', onclick: async () => { await invoke('copiar', { texto }); copiarB.textContent = 'Copiado'; } }, icono('copiar'), 'Copiar instrucciones');
-        zona.replaceChildren(h('label', { class: 'campo' }, 'Código de alta'), h('div', { class: 'codigo' }, codigo),
+        zona.replaceChildren(h('div', { class: 'pasos', style: 'margin-top:12px' }, enviado
+            ? `✓ Le enviamos un correo a ${correo.value.trim()} con el código y los pasos. Si no le llega, pásale esto:`
+            : 'No se pudo enviar el correo. Pásale tú el código y los pasos:'),
+          h('label', { class: 'campo' }, 'Código de alta'), h('div', { class: 'codigo' }, codigo),
           h('div', { class: 'acciones', style: 'padding:8px 0 0' }, copiarB));
       } catch (e) { err.textContent = e.message; }
-    } }, 'Crear código de alta')), zona));
+    } }, 'Invitar')), zona));
 }
 
 // ── Agregar credencial / empresa ─────────────────────────────────────────────

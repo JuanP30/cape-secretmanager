@@ -5,6 +5,7 @@ import * as D from './db.js';
 import * as P from './personas.js';
 import { credencialesDe, buscarAlias, campo } from './vault.js';
 import { rutaFtpValida } from './acciones.js';
+import { correoInvitacion } from './correo.js';
 
 const MAX_CUERPO = 8_000_000; // ftp/subir manda archivos en base64
 const ORIGENES_APP = new Set(['tauri://localhost', 'http://tauri.localhost']);
@@ -23,7 +24,7 @@ const enviar = (res, estado, cuerpo, extra = {}) => {
   res.end(json ? JSON.stringify(cuerpo) : cuerpo);
 };
 
-export function crearServidor({ db, vault, acciones, ahora = () => Date.now() }) {
+export function crearServidor({ db, vault, acciones, correoSaliente = null, repo = process.env.CAPE_REPO || '', ahora = () => Date.now() }) {
   async function credencialDe(sesion, alias, tipo) {
     const item = buscarAlias(await vault.items(), await vault.colecciones(), sesion.empresas, alias);
     if (!item) return { error: [404, `no hay una credencial «${alias}» en tus empresas\n`] };
@@ -118,7 +119,15 @@ export function crearServidor({ db, vault, acciones, ahora = () => Date.now() })
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(correo))) return enviar(res, 400, { error: 'correo inválido' });
         const codigo = P.crearAlta(db, correo, nombre || correo, ahora());
         D.registrar(db, sesion.id, 'invitar', correo, true, nombre);
-        return enviar(res, 200, { codigo, vence_horas: 24 });
+        let enviado = false;
+        if (correoSaliente) {
+          try {
+            await correoSaliente(correo, 'Te invitaron a CAPE SecretManager',
+              correoInvitacion({ nombre, correo, codigo, puerta: `https://${req.headers.host}`, repo }));
+            enviado = true;
+          } catch (e) { console.error('invitación sin correo:', e.message); }
+        }
+        return enviar(res, 200, { codigo, vence_horas: 24, enviado });
       }
       if (req.method === 'POST' && ruta === '/v1/rechazar') {
         if (!esPersona) return soloPersona();

@@ -14,6 +14,20 @@ a quién le llega un cambio y cuándo.
 No hay actualización automática ni «parche» que se mande: el repo es la única fuente, y cada
 computador toma la versión cuando la construye.
 
+## ¿Lo cambio yo, o lo propongo?
+
+| Situación | Qué hacer |
+|---|---|
+| Un ajuste **solo para mí** (atajo, color, algo de mi computador) | Lo cambio en mi copia. No se sube. |
+| Un arreglo o mejora pequeña para **todos** | Rama → Pull Request → el otro lo aprueba (abajo). |
+| Algo grande, que toca **el servidor**, o no estoy seguro | **Lo propongo**: abro un *Issue* en GitHub con la etiqueta **`propuesta`** («Propuesta: generador de contraseñas en el panel»), o se lo digo al administrador. |
+
+Las propuestas se deciden juntos. Si se aprueba, el Issue pasa a la etiqueta **`pendiente`**: queda como
+**actualización oficial pendiente** y se anota en la sección «Pendientes» de [CAMBIOS.md](../CAMBIOS.md).
+Quien la haga sigue el camino de abajo; al publicarla, sale de «Pendientes» y entra como versión nueva.
+
+Para ver qué hay: pestaña **Issues** del repo → filtrar por `propuesta` o `pendiente`.
+
 ## El camino de un cambio
 
 1. **Rama nueva**: `git switch -c mejora-buscar`. Nunca directo a `main`.

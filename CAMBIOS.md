@@ -3,5 +3,13 @@
 Lo más nuevo arriba. Al cambiar algo: sube `"version"` en `app/src-tauri/tauri.conf.json` y anota aquí
 qué cambió, en qué parte (**app**, **Puerta**, **cliente**, **bóveda**) y si hay que reconstruir o desplegar.
 
+## Pendientes (actualizaciones oficiales aprobadas, por hacer)
+- _(ninguna todavía — cada una enlaza su Issue con la etiqueta `pendiente`)_
+
+## 0.2.0 — 23-oct-2026
+- **Puerta**: «Invitar persona» envía un correo con el código de alta, la dirección de la Puerta y los pasos
+  (`CORREO_WEBHOOK`, opcional). **Hay que desplegar la Puerta.**
+- **App**: la pantalla de invitar dice si el correo salió. **Hay que reconstruir la app.**
+
 ## 0.1.0 — 23-oct-2026
 - Primera versión: bóveda (Vaultwarden 1.37.4) + Puerta + app de la barra (Mac y Windows) + cliente para IA.
