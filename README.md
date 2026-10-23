@@ -86,6 +86,7 @@ pegues una clave.**
 | <img src="docs/img/icono.png" width="18"> | [**2 · App**](docs/2-app.md): construir e instalar en Mac o Windows | cada persona | una vez por computador |
 | <img src="docs/img/icono.png" width="18"> | [**3 · IA**](docs/3-ia.md): conectar Claude, OpenCode… | cada persona | una vez por computador |
 | <img src="docs/img/icono.png" width="18"> | [**4 · Uso diario**](docs/4-uso.md) y qué hacer si algo falla | todos | siempre |
+| <img src="docs/img/icono.png" width="18"> | [**5 · Actualizar**](docs/5-actualizar.md): cambios, Mac ↔ Windows, servidor | quien cambie algo | en cada mejora |
 
 > **¿Por qué la app no se descarga hecha?** Porque se construye en tu computador desde este código:
 > sabes exactamente qué estás instalando, y apunta a **tu** servidor y a ningún otro. Tarda unos 10 minutos la primera vez.
