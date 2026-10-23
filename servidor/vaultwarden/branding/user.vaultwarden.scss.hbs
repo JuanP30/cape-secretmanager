@@ -1,0 +1,87 @@
+/* CAPE SecretManager — aspecto propio de Vaultwarden (22-oct-2026).
+   Vaultwarden añade este archivo al final de /css/vaultwarden.css. No se toca el código de Vaultwarden:
+   al actualizar la imagen, esto sigue aplicando. Si una actualización cambia el HTML del login, lo
+   peor que pasa es que vuelve a verse el diseño original (nada se rompe).
+   Imágenes: /images/cape/ (montadas desde infra/vaultwarden/branding/img). */
+
+/* ── Colores ─────────────────────────────────────────────────────────────
+   La interfaz entera sale de la paleta --color-brand-* (botones, enlaces, foco, avatar):
+   se cambia la paleta azul de Bitwarden por la morada de CAPE y todo lo demás la hereda,
+   en claro y en oscuro. --color-primary-* / illustration-* son los tokens viejos que
+   todavía usan algunas pantallas (tripletas RGB). */
+:root, .theme_light, .theme_dark {
+  --color-brand-050: #f5f1fd;
+  --color-brand-100: #ebe3fb;
+  --color-brand-200: #d6c7f6;
+  --color-brand-300: #b9a0ee;
+  --color-brand-400: #a283ea;
+  --color-brand-500: #7f55d2;
+  --color-brand-600: #6a3fc0;
+  --color-brand-700: #4b2a8c;   /* botón «Ingresar» de la propuesta */
+  --color-brand-800: #3d2177;
+  --color-brand-900: #2e195c;
+  --color-brand-950: #1f1140;
+  --color-brand-950-rgb: 31, 17, 64;
+  --color-nav-bg-primary: #2a1660;          /* barra lateral */
+  --color-nav-bg-primary-strong: #1f1140;
+}
+:root, .theme_light {
+  --color-primary-100: 235 227 251;
+  --color-primary-300: 185 160 238;
+  --color-primary-600: 75 42 140;
+  --color-primary-700: 61 33 119;
+  --color-illustration-outline: 46 25 92;
+  --color-illustration-bg-primary: 235 227 251;
+  --color-illustration-bg-secondary: 214 199 246;
+  --color-illustration-logo: 75 42 140;
+}
+.theme_dark {
+  --color-primary-100: 46 25 92;
+  --color-primary-300: 127 85 210;
+  --color-primary-600: 162 131 234;
+  --color-primary-700: 214 199 246;
+  --color-illustration-outline: 162 131 234;
+  --color-illustration-bg-primary: 214 199 246;
+  --color-illustration-bg-secondary: 185 160 238;
+}
+
+/* ── Pantallas sin sesión (login, registro, 2FA…) ───────────────────────── */
+/* Logo de arriba: candado + CAPE en vez de «Vaultwarden» */
+bit-landing-header header > a bit-svg { visibility: hidden; }
+bit-landing-header header > a {
+  background: url(/images/cape/cape-marca.png) left center / contain no-repeat;
+  background-origin: content-box; background-clip: content-box;
+}
+.theme_dark bit-landing-header header > a { background-image: url(/images/cape/cape-marca-blanca.png); }
+
+/* Ilustración de arriba del formulario → candado CAPE */
+bit-landing-hero > div > div:has(> bit-svg) {
+  background: url(/images/cape/cape-icono.png) center / contain no-repeat;
+}
+bit-landing-hero > div > div:has(> bit-svg) > bit-svg { visibility: hidden; }
+
+/* Ilustraciones decorativas del fondo: fuera */
+bit-landing-layout div[class*="tw-opacity-[.11]"] { display: none !important; }
+
+/* Escritorio: panel morado a la izquierda, formulario a la derecha (como la propuesta).
+   El web vault de Bitwarden fija <meta viewport width=1010>, así que en celular el ancho también
+   «mide» 1010: se distingue por el puntero (hover), no por el ancho. */
+@media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+  bit-landing-layout > div { padding-left: 42vw; }
+  bit-landing-layout > div::before {
+    content: "";
+    position: fixed; inset: 0 auto 0 0; width: 42vw; z-index: 2;
+    /* dos capas: el contenido (candado + marca + lema) siempre entero, el fondo puede recortarse */
+    padding: 10vh 5vw; box-sizing: border-box;
+    background:
+      url(/images/cape/panel-contenido.png) center / contain no-repeat content-box,
+      #2a1660 url(/images/cape/panel-fondo.jpg) center / cover no-repeat padding-box;
+  }
+  /* el panel ya trae la marca */
+  bit-landing-header header > a { visibility: hidden; }
+  bit-landing-card > div { border-radius: 16px; }
+}
+
+/* Botones y campos más redondeados, como la propuesta */
+[bitbutton], button[bitButton], .tw-rounded-full[bitbutton] { border-radius: 10px !important; }
+bit-form-field input, bit-form-field .tw-rounded-lg { border-radius: 10px; }

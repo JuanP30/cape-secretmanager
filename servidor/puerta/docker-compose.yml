@@ -1,0 +1,24 @@
+# La Puerta de CAPE SecretManager. Va detrás del mismo Traefik que Vaultwarden.
+# Los valores salen de .env (copia .env.ejemplo → .env). Guía: docs/1-servidor.md
+services:
+  cape-puerta:
+    build: .
+    image: cape-puerta:actual
+    container_name: cape-puerta
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./datos:/datos                   # SQLite + perfil del CLI de bw
+    networks: [traefik]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_RED}"
+      - "traefik.http.routers.cape-puerta.rule=Host(`${PUERTA_DOMINIO}`)"
+      - "traefik.http.routers.cape-puerta.entrypoints=${TRAEFIK_ENTRYPOINTS:-web,websecure}"
+      - "traefik.http.routers.cape-puerta.tls=true"
+      - "traefik.http.routers.cape-puerta.tls.certresolver=${TRAEFIK_CERTRESOLVER}"
+      - "traefik.http.services.cape-puerta.loadbalancer.server.port=3000"
+networks:
+  traefik:
+    external: true
+    name: ${TRAEFIK_RED}

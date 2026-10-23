@@ -1,0 +1,10 @@
+#!/bin/sh
+# «sendmail» de Vaultwarden (USE_SENDMAIL): no envía nada aquí. Pasa el correo MIME tal cual,
+# en base64url, a un webhook de n8n (N8N_MAIL_URL) que lo envía, p. ej. por la API de Gmail
+# Vaultwarden lo llama como `sendmail -i -f <de> -- <para…>` con el
+# correo por stdin; los destinatarios ya van en las cabeceras, así que los argumentos se ignoran.
+# Si n8n no responde 200, sale con 75 (EX_TEMPFAIL) y Vaultwarden registra el fallo.
+raw=$(base64 -w0 | tr '+/' '-_' | tr -d '=')
+code=$(printf '{"raw":"%s"}' "$raw" | curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+  -X POST "$N8N_MAIL_URL" -H 'Content-Type: application/json' -H "X-Vault-Key: $N8N_MAIL_KEY" --data-binary @-)
+[ "$code" = 200 ] || { echo "cape-sendmail: n8n respondió $code" >&2; exit 75; }

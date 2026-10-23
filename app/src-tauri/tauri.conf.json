@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "CAPE SecretManager",
+  "version": "0.1.0",
+  "identifier": "com.cape.secretmanager",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "panel",
+        "title": "CAPE SecretManager",
+        "url": "index.html",
+        "width": 380,
+        "height": 580,
+        "resizable": false,
+        "decorations": false,
+        "visible": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focus": true,
+        "transparent": true,
+        "shadow": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src https://puerta.TU-DOMINIO.com"
+    },
+    "macOSPrivateApi": true
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app",
+      "dmg",
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    }
+  }
+}

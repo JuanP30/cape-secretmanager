@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Cliente de la Puerta de CAPE SecretManager. Claude pide ACCIONES; nunca recibe claves.
+#   cape conectar [nombre-del-equipo]   → muestra un código; el administrador lo aprueba en su app
+#   cape lista                          → credenciales que puedes usar (alias, tipo, empresa)
+#   cape ssh <alias> "<comando>"        → corre el comando en ese servidor
+#   cape api <alias> <MÉTODO> <ruta> [cuerpo-json]
+#   cape ftp-bajar <alias> <ruta-remota> <archivo-local>   (sale 3 si no existe en el servidor)
+#   cape ftp-subir <alias> <archivo-local> <ruta-remota>   (la Puerta verifica bajando de nuevo)
+#   cape desconectar
+set -uo pipefail
+P="${CAPE_PUERTA:-$(cat "$HOME/.cape/puerta" 2>/dev/null)}"   # la dirección de tu Puerta (docs/3-claude.md)
+[ -n "$P" ] || { echo "Falta la dirección de la Puerta: echo https://puerta.tu-dominio.com > ~/.cape/puerta" >&2; exit 1; }
+S="$HOME/.cape/sesion"
+json() { sed -n "s/.*\"$1\":\"\([^\"]*\)\".*/\1/p"; }
+token() { [ -s "$S" ] || { echo "No estás conectado: corre «cape conectar»." >&2; exit 1; }; cat "$S"; }
+accion() {  # accion <ruta> <ssh|api> campo=valor…  → imprime la salida; sale con el código remoto
+  local ruta=$1 tipo=$2 t h http c args=(); shift 2
+  t=$(token) || exit 1
+  for kv in "$@"; do args+=(--data-urlencode "$kv"); done
+  h=$(mktemp)
+  curl -sS -D "$h" -H "Authorization: Bearer $t" "${args[@]}" "$P$ruta"
+  http=$(awk 'NR==1{print $2}' "$h"); c=$(awk 'tolower($1)=="x-cape-codigo:"{print $2}' "$h" | tr -d '\r'); rm -f "$h"
+  [ "$http" = 200 ] || exit 1
+  if [ "$tipo" = ssh ]; then exit "${c:-1}"; fi
+  [ "${c:-500}" -lt 400 ]   # api: éxito si el estado HTTP remoto es < 400
+}
+case "${1:-}" in
+  conectar)
+    r=$(curl -sS --data-urlencode "equipo=${2:-$(hostname)}" "$P/v1/conectar") || exit 1
+    id=$(echo "$r" | json id); so=$(echo "$r" | json sondeo); co=$(echo "$r" | json codigo)
+    [ -n "$co" ] || { echo "La Puerta no respondió: $r" >&2; exit 1; }
+    printf 'Pídele al administrador que apruebe este código en CAPE SecretManager:\n\n    %s\n\n(vence en 5 minutos)\n' "$co"
+    for _ in $(seq 1 100); do
+      sleep 3
+      e=$(curl -sS --data-urlencode "id=$id" --data-urlencode "sondeo=$so" "$P/v1/conectar/estado")
+      case "$(echo "$e" | json estado)" in
+        aprobada) mkdir -p "$HOME/.cape"; (umask 077; echo "$e" | json token > "$S"); echo "Conectado."; exit 0 ;;
+        rechazada|vencida|desconocida) echo "No se conectó: $(echo "$e" | json estado)." >&2; exit 1 ;;
+      esac
+    done; echo "Venció la espera." >&2; exit 1 ;;
+  lista) t=$(token) || exit 1; curl -sS -H "Authorization: Bearer $t" "$P/v1/credenciales" ;;
+  ssh) [ $# -ge 3 ] || { echo 'Uso: cape ssh <alias> "<comando>"' >&2; exit 2; }; accion /v1/ssh ssh "alias=$2" "comando=$3" ;;
+  api) [ $# -ge 4 ] || { echo 'Uso: cape api <alias> <MÉTODO> <ruta> [cuerpo]' >&2; exit 2; }
+       accion /v1/api api "alias=$2" "metodo=$3" "ruta=$4" "cuerpo=${5:-}" ;;
+  ftp-bajar)
+    [ $# -ge 4 ] || { echo 'Uso: cape ftp-bajar <alias> <ruta-remota> <archivo-local>' >&2; exit 2; }
+    t=$(token) || exit 1
+    http=$(curl -sS -o "$4.cape-tmp" -w '%{http_code}' -H "Authorization: Bearer $t" \
+      --data-urlencode "alias=$2" --data-urlencode "ruta=$3" "$P/v1/ftp/bajar") || { rm -f "$4.cape-tmp"; exit 1; }
+    case "$http" in
+      200) mv "$4.cape-tmp" "$4" ;;
+      404) rm -f "$4.cape-tmp"; exit 3 ;;
+      *) cat "$4.cape-tmp" >&2; rm -f "$4.cape-tmp"; exit 1 ;;
+    esac ;;
+  ftp-subir)
+    [ $# -ge 4 ] || { echo 'Uso: cape ftp-subir <alias> <archivo-local> <ruta-remota>' >&2; exit 2; }
+    t=$(token) || exit 1; b=$(mktemp)
+    base64 < "$3" | tr -d '\n' > "$b"
+    r=$(curl -sS -w '\n%{http_code}' -H "Authorization: Bearer $t" --data-urlencode "alias=$2" \
+      --data-urlencode "ruta=$4" --data-urlencode "contenido@$b" "$P/v1/ftp/subir"); rm -f "$b"
+    [ "${r##*$'\n'}" = 200 ] || { echo "${r%$'\n'*}" >&2; exit 1; } ;;
+  desconectar) t=$(token) || exit 1; curl -sS -X POST -H "Authorization: Bearer $t" "$P/v1/desconectar"; rm -f "$S" ;;
+  *) grep '^#  ' "$0" | sed 's/^# *//'; exit 2 ;;
+esac

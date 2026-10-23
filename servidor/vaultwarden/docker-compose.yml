@@ -1,0 +1,56 @@
+# Vaultwarden — la bóveda (compatible con las apps de Bitwarden), detrás de Traefik, sin puertos al host.
+# Los valores salen de .env (copia .env.ejemplo → .env). Guía: docs/1-servidor.md
+services:
+  vaultwarden:
+    image: vaultwarden/server:1.37.4
+    container_name: vaultwarden
+    restart: unless-stopped
+    environment:
+      DOMAIN: "https://${VAULT_DOMINIO}"
+      SIGNUPS_ALLOWED: "false"          # registro cerrado: las personas se invitan desde /admin
+      INVITATIONS_ALLOWED: "true"
+      ADMIN_TOKEN: "${VW_ADMIN_TOKEN}"  # hash argon2 (docs/1-servidor.md, paso 3)
+      PUSH_ENABLED: "false"
+      ORG_EVENTS_ENABLED: "true"        # registro de quién vio/cambió cada clave
+      EVENTS_DAYS_RETAIN: "365"
+      SMTP_FROM_NAME: "CAPE SecretManager"
+      SMTP_EMBED_IMAGES: "false"        # con true, Gmail muestra las imágenes como adjuntos «noname»
+      # Correo, opción A (lo normal): un SMTP cualquiera (Gmail con contraseña de aplicación, Brevo, etc.)
+      SMTP_HOST: "${SMTP_HOST}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_SECURITY: "${SMTP_SECURITY:-starttls}"
+      SMTP_USERNAME: "${SMTP_USERNAME}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD}"
+      SMTP_FROM: "${SMTP_FROM}"
+      # Correo, opción B: sin SMTP, por un webhook de n8n (cape-sendmail). Borra las líneas SMTP_HOST…SMTP_PASSWORD
+      # de arriba, descomenta estas 4 y la línea de cape-sendmail en volumes.
+      # USE_SENDMAIL: "true"
+      # SENDMAIL_COMMAND: "/usr/local/bin/cape-sendmail"
+      # N8N_MAIL_URL: "${N8N_MAIL_URL}"
+      # N8N_MAIL_KEY: "${N8N_MAIL_KEY}"
+    volumes:
+      - ./data:/data                    # TODA la bóveda vive aquí: es lo que se respalda (vw-backup.sh)
+      # - ./cape-sendmail:/usr/local/bin/cape-sendmail:ro
+      # Marca CAPE (sin tocar el código de Vaultwarden). La hoja branding/user.vaultwarden.scss.hbs
+      # se copia a data/templates/scss/ y las plantillas branding/email/ a data/templates/email/.
+      - ./branding/img:/web-vault/images/cape:ro
+      - ./branding/img/favicon-16x16.png:/web-vault/images/favicon-16x16.png:ro
+      - ./branding/img/favicon-32x32.png:/web-vault/images/favicon-32x32.png:ro
+      - ./branding/img/apple-touch-icon.png:/web-vault/images/apple-touch-icon.png:ro
+      - ./branding/img/android-chrome-192x192.png:/web-vault/images/android-chrome-192x192.png:ro
+      - ./branding/img/android-chrome-512x512.png:/web-vault/images/android-chrome-512x512.png:ro
+      - ./branding/img/mstile-150x150.png:/web-vault/images/mstile-150x150.png:ro
+    networks: [traefik]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_RED}"
+      - "traefik.http.routers.vaultwarden.rule=Host(`${VAULT_DOMINIO}`)"
+      - "traefik.http.routers.vaultwarden.entrypoints=${TRAEFIK_ENTRYPOINTS:-web,websecure}"
+      - "traefik.http.routers.vaultwarden.tls.certresolver=${TRAEFIK_CERTRESOLVER}"
+      - "traefik.http.routers.vaultwarden.tls=true"
+      - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
+
+networks:
+  traefik:
+    external: true
+    name: ${TRAEFIK_RED}
