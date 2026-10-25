@@ -10,12 +10,11 @@ tú solo instalas lo que pida permiso de administrador y abres la app al final.
 ## Paso 1 · Bajar el repo
 
 ```bash
-git clone https://github.com/<dueño>/cape-secretmanager.git
+git clone https://github.com/JuanP30/cape-secretmanager.git
 cd cape-secretmanager
 ```
 
-(El repo es privado: la persona necesita estar invitada como colaboradora en GitHub y haber iniciado
-sesión, por ejemplo con `gh auth login`.)
+(El repo es público y gratis: no hace falta cuenta de GitHub para clonarlo.)
 
 ## Paso 2 · Herramientas (una sola vez por computador)
 

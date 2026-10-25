@@ -103,4 +103,9 @@ cliente/cape            el cliente para la IA (bash; en Windows, Git Bash)
 docs/                   las cuatro guías
 ```
 
+## Licencia
+
+Gratis y de código abierto, con licencia [MIT](LICENSE): úsalo, cámbialo y compártelo libremente.
+No se distribuye ya compilada a propósito: cada quien la construye apuntando a **su** servidor.
+
 <p align="center"><sub>SECURE · SIMPLE · INTERNAL</sub></p>
