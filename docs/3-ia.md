@@ -6,14 +6,25 @@ La IA **nunca ve una clave**. Pide **acciones** a la Puerta («corre este comand
 «sube este archivo») y la Puerta las hace con la clave guardada y le devuelve solo el resultado.
 Antes, una persona aprueba a esa IA y elige **qué empresas** puede usar.
 
-Se hace **una vez por computador**. En Windows todo esto corre en **Git Bash**.
+Se hace **una vez por computador**. En Windows todo esto corre en **Git Bash** (o en PowerShell con
+`cape.ps1`, abajo).
 
 ## Paso 1 · Instalar el cliente
 
 ```bash
 mkdir -p ~/.cape
-cp cliente/cape ~/.cape/cape && chmod +x ~/.cape/cape
+cp cliente/cape cliente/cape.ps1 ~/.cape/ && chmod +x ~/.cape/cape
 echo https://puerta.tu-dominio.com > ~/.cape/puerta     # la dirección de TU Puerta
+```
+
+**Windows / PowerShell:** usa `& ~/.cape/cape.ps1 lista` (y así con cada orden). No llames a `bash`
+a secas desde PowerShell: puede abrir el bash de WSL, que tiene otro `~` y no ve `~/.cape`. `cape.ps1`
+busca el Git Bash. Si un comando remoto lleva comillas por dentro, córrelo desde Git Bash.
+
+**Claude Code:** instala también la skill, así Claude usa `cape` solo cuando una tarea pide un acceso:
+
+```bash
+mkdir -p ~/.claude/skills/cape && cp cliente/skill-claude/SKILL.md ~/.claude/skills/cape/
 ```
 
 Desde aquí, el cliente se usa como `bash ~/.cape/cape …` (o cópialo dentro del repo de tu proyecto,
@@ -76,6 +87,15 @@ En Claude Code, en `~/.claude/settings.json`, agrega reglas `deny` para lo que n
     ]
   }
 }
+```
+
+En Windows, en lugar de las tres de `security` (son del Llavero de macOS):
+
+```json
+      "Bash(cat ~/.cape/sesion*)",
+      "PowerShell(Get-Content *\\.cape\\sesion*)",
+      "PowerShell(bw *)",
+      "PowerShell(Get-StoredCredential*)"
 ```
 
 (Y cualquier archivo viejo donde tuvieras claves en texto: `Read(~/ruta/al/archivo)`.)

@@ -1,0 +1,9 @@
+# En Windows, git convierte a CRLF al bajar el repo (core.autocrlf). Lo que corre en bash o dentro de un
+# contenedor Linux debe quedarse en LF: con CRLF, bash en WSL/Linux falla («$'\r': command not found»)
+# y un arranque.sh desplegado desde Windows tumbaría la Puerta.
+* text=auto
+cliente/cape text eol=lf
+*.sh text eol=lf
+servidor/vaultwarden/cape-sendmail text eol=lf
+servidor/puerta/Dockerfile text eol=lf
+*.ps1 text eol=crlf
