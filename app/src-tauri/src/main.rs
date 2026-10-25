@@ -3,7 +3,14 @@
 // un archivo. Copiar pone el valor en el portapapeles y lo borra a los 30 s si nadie lo cambió.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{thread, time::Duration};
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
+    thread,
+    time::{Duration, Instant},
+};
 use tauri::{
     image::Image,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -14,6 +21,13 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut,
 use tauri_plugin_positioner::{Position, WindowExt};
 
 const SERVICIO: &str = "cape-secretmanager";
+
+// ¿Quedó puesto el fondo translúcido del sistema? Si no (Windows 10 no tiene Mica), la web pinta uno
+// sólido: con la ventana transparente y sin vidrio, el panel se vería vacío.
+static VIDRIO: AtomicBool = AtomicBool::new(false);
+// Cuándo se ocultó el panel por perder el foco. En Windows, clic en el ícono con el panel abierto quita
+// primero el foco (se oculta) y luego llega el clic: sin esto, el clic lo volvía a abrir.
+static OCULTO_EN: Mutex<Option<Instant>> = Mutex::new(None);
 
 fn entrada() -> Result<keyring::Entry, String> {
     keyring::Entry::new(SERVICIO, "sesion").map_err(|e| e.to_string())
@@ -34,6 +48,11 @@ fn token_borrar() {
     if let Ok(e) = entrada() {
         let _ = e.delete_credential();
     }
+}
+
+#[tauri::command]
+fn vidrio() -> bool {
+    VIDRIO.load(Ordering::Relaxed)
 }
 
 #[tauri::command]
@@ -71,32 +90,56 @@ fn colocar_mac(w: &tauri::WebviewWindow, desde_icono: bool) -> Option<()> {
 }
 
 // Con el mouse en otra pantalla (o con el ícono escondido tras la muesca) el panel sale en la
-// pantalla donde está el mouse, arriba a la derecha bajo la barra. Desde el ícono, justo debajo de él.
+// pantalla donde está el mouse, a la derecha y pegado a la barra. Desde el ícono, junto a él.
+// Se mide con el área útil (sin la barra de tareas): en Windows la barra suele estar abajo, y si el
+// área útil empieza más abajo que la pantalla es que está arriba.
 fn a_pantalla_del_mouse(w: &tauri::WebviewWindow) -> Option<()> {
     let app = w.app_handle();
     let c = app.cursor_position().ok()?;
     let m = app.monitor_from_point(c.x, c.y).ok()??;
-    let (p, t, f) = (m.position(), m.size(), m.scale_factor());
+    let (a, f) = (m.work_area(), m.scale_factor());
     let tam = w.outer_size().ok()?;
-    let x = p.x + t.width as i32 - tam.width as i32 - (10.0 * f) as i32;
-    let y = p.y + (32.0 * f) as i32;
+    let margen = (10.0 * f) as i32;
+    let x = a.position.x + a.size.width as i32 - tam.width as i32 - margen;
+    let y = if a.position.y > m.position().y || cfg!(target_os = "macos") {
+        a.position.y + margen
+    } else {
+        a.position.y + a.size.height as i32 - tam.height as i32 - margen
+    };
     w.set_position(tauri::PhysicalPosition::new(x, y)).ok()
+}
+
+// El plugin centra el panel sobre el ícono sin mirar los bordes: en Windows, con el ícono junto al
+// reloj, se salía por la derecha. Lo mete en el área útil de su pantalla.
+fn encajar(w: &tauri::WebviewWindow) -> Option<()> {
+    let (pos, tam) = (w.outer_position().ok()?, w.outer_size().ok()?);
+    let m = w.current_monitor().ok()??;
+    let a = m.work_area();
+    let x = pos.x.clamp(a.position.x, a.position.x + a.size.width as i32 - tam.width as i32);
+    let y = pos.y.clamp(a.position.y, a.position.y + a.size.height as i32 - tam.height as i32);
+    if (x, y) != (pos.x, pos.y) {
+        w.set_position(tauri::PhysicalPosition::new(x, y)).ok()?;
+    }
+    Some(())
 }
 
 fn alternar_panel(app: &AppHandle, desde_icono: bool) {
     if let Some(w) = app.get_webview_window("panel") {
+        let recien_oculto = OCULTO_EN.lock().ok().and_then(|t| *t).is_some_and(|t| t.elapsed() < Duration::from_millis(400));
         if w.is_visible().unwrap_or(false) {
             let _ = w.hide();
+        } else if desde_icono && recien_oculto {
+            // el clic era para cerrarlo: el panel ya se ocultó al perder el foco
         } else {
             #[cfg(target_os = "macos")]
             let listo = colocar_mac(&w, desde_icono).is_some();
             #[cfg(not(target_os = "macos"))]
             let listo = false;
             if listo {
-            } else if !desde_icono || w.move_window(Position::TrayCenter).is_err() {
-                if a_pantalla_del_mouse(&w).is_none() {
-                    let _ = w.move_window(Position::TopRight);
-                }
+            } else if desde_icono && w.move_window(Position::TrayCenter).is_ok() {
+                let _ = encajar(&w);
+            } else if a_pantalla_del_mouse(&w).is_none() {
+                let _ = w.move_window(Position::TopRight);
             }
             let _ = w.emit("panel-mostrar", ()); // la web arranca la animación de entrada
             let _ = w.show();
@@ -126,7 +169,8 @@ fn main() {
             #[cfg(target_os = "macos")]
             if let Some(w) = app.get_webview_window("panel") {
                 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
-                let _ = apply_vibrancy(&w, NSVisualEffectMaterial::Popover, Some(NSVisualEffectState::Active), Some(14.0));
+                let ok = apply_vibrancy(&w, NSVisualEffectMaterial::Popover, Some(NSVisualEffectState::Active), Some(14.0)).is_ok();
+                VIDRIO.store(ok, Ordering::Relaxed);
                 // En todos los escritorios (Spaces) y encima de apps a pantalla completa, como los paneles del sistema.
                 if let Ok(ns) = w.ns_window() {
                     use objc2_app_kit::{NSWindow, NSWindowCollectionBehavior as B};
@@ -134,14 +178,21 @@ fn main() {
                     ventana.setCollectionBehavior(B::CanJoinAllSpaces | B::FullScreenAuxiliary | B::Stationary);
                 }
             }
+            // Windows 11: Mica (sigue el tema claro/oscuro). Windows 10 no lo tiene: la web pone fondo sólido.
             #[cfg(target_os = "windows")]
             if let Some(w) = app.get_webview_window("panel") {
-                let _ = window_vibrancy::apply_mica(&w, None);
+                VIDRIO.store(window_vibrancy::apply_mica(&w, None).is_ok(), Ordering::Relaxed);
             }
             // ⌘⇧K (Ctrl+Shift+K en Windows) abre el panel aunque el ícono no se vea.
             app.global_shortcut().register(Shortcut::new(Some((if cfg!(target_os = "macos") { Modifiers::SUPER } else { Modifiers::CONTROL }) | Modifiers::SHIFT), Code::KeyK))?;
+            // Mac tiñe el candado negro (plantilla) según la barra. La bandeja de Windows no tiñe nada y el
+            // negro desaparece en la barra oscura: allá va el ícono de la app, morado.
+            #[cfg(target_os = "macos")]
+            let icono = Image::from_bytes(include_bytes!("../icons/barra.png"))?;
+            #[cfg(not(target_os = "macos"))]
+            let icono = Image::from_bytes(include_bytes!("../icons/32x32.png"))?;
             TrayIconBuilder::with_id("cape")
-                .icon(Image::from_bytes(include_bytes!("../icons/barra.png"))?)
+                .icon(icono)
                 .icon_as_template(true)
                 .tooltip("CAPE SecretManager")
                 .on_tray_icon_event(|tray, evento| {
@@ -155,10 +206,15 @@ fn main() {
         })
         .on_window_event(|ventana, evento| {
             if let WindowEvent::Focused(false) = evento {
+                if ventana.is_visible().unwrap_or(false) {
+                    if let Ok(mut t) = OCULTO_EN.lock() {
+                        *t = Some(Instant::now());
+                    }
+                }
                 let _ = ventana.hide();
             }
         })
-        .invoke_handler(tauri::generate_handler![token_guardar, token_leer, token_borrar, copiar])
+        .invoke_handler(tauri::generate_handler![token_guardar, token_leer, token_borrar, vidrio, copiar])
         .run(tauri::generate_context!())
         .expect("no pude arrancar CAPE SecretManager");
 }

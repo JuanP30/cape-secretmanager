@@ -8,7 +8,9 @@
 #   cape ftp-subir <alias> <archivo-local> <ruta-remota>   (la Puerta verifica bajando de nuevo)
 #   cape desconectar
 set -uo pipefail
-P="${CAPE_PUERTA:-$(cat "$HOME/.cape/puerta" 2>/dev/null)}"   # la dirección de tu Puerta (docs/3-claude.md)
+# La dirección de tu Puerta (docs/3-ia.md). Si el archivo lo escribió PowerShell trae CRLF, BOM o
+# UTF-16: se deja solo la dirección.
+P="${CAPE_PUERTA:-$(LC_ALL=C tr -d '\r\n\000\357\273\277\377\376' < "$HOME/.cape/puerta" 2>/dev/null)}"
 [ -n "$P" ] || { echo "Falta la dirección de la Puerta: echo https://puerta.tu-dominio.com > ~/.cape/puerta" >&2; exit 1; }
 S="$HOME/.cape/sesion"
 json() { sed -n "s/.*\"$1\":\"\([^\"]*\)\".*/\1/p"; }

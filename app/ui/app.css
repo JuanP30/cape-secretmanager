@@ -16,6 +16,10 @@ html,body{height:100%;background:transparent}
 body{font:13.5px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;color:var(--tx);
   border-radius:14px;overflow:hidden;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none;
   -webkit-font-smoothing:antialiased}
+html.opaco body{background:#f7f4fd}
+@media (prefers-color-scheme:dark){html.opaco body{background:#1f1931}}
+html.win body{border-radius:8px}
+html.win .cab{border-radius:8px 8px 0 0}
 
 /* Entrada del panel cada vez que se abre */
 body.entrando{animation:aparecer .26s var(--suave)}

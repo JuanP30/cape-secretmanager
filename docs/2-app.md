@@ -32,7 +32,17 @@ cd cape-secretmanager
 5. WebView2 ya viene en Windows 10/11 actualizados. Si la app abre en blanco:
    https://developer.microsoft.com/microsoft-edge/webview2/ → «Evergreen Bootstrapper».
 
+Con **winget** (viene en Windows 11) los cuatro se instalan desde PowerShell, sin buscar páginas:
+
+```powershell
+winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+winget install Rustlang.Rustup
+winget install OpenJS.NodeJS.LTS
+winget install Git.Git
+```
+
 Cierra y vuelve a abrir la terminal después de instalar, para que encuentre `cargo` y `node`.
+(Si la IA construye en la misma sesión de Git Bash, le basta con `export PATH="$HOME/.cargo/bin:$PATH"`.)
 
 ## Paso 3 · Decirle a la app dónde está tu Puerta
 

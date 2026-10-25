@@ -253,6 +253,9 @@ function vistaEmpresa() {
 
 // ── Arranque ─────────────────────────────────────────────────────────────────
 document.getElementById('quien').addEventListener('click', () => token && salir());
+// Windows redondea la ventana a 8 px; sin vidrio del sistema (Windows 10) el panel necesita fondo propio.
+if (navigator.userAgent.includes('Windows')) document.documentElement.classList.add('win');
+invoke('vidrio').then((hay) => { if (!hay) document.documentElement.classList.add('opaco'); });
 (async () => {
   token = await invoke('token_leer');
   token ? cargar() : vistaEntrar();
